@@ -14,12 +14,20 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import fr.anthspl.etatpontlehavre.data.model.BridgeCoordinates
 import fr.anthspl.etatpontlehavre.data.model.BridgeStatus
+import fr.anthspl.etatpontlehavre.data.remote.MeteoFranceApi
 import fr.anthspl.etatpontlehavre.data.remote.SWingDataSource
+import fr.anthspl.etatpontlehavre.data.repository.VigilanceRepository
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import retrofit2.Retrofit
 import kotlinx.coroutines.CancellationException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import okhttp3.ConnectionSpec
 
 class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
@@ -30,10 +38,15 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
         val interval = getInterval(applicationContext)
         val timeStr = SimpleDateFormat("HH:mm:ss", Locale.FRANCE).format(Date())
 
-        Log.i("BridgeAlertWorker", "🔄 [$timeStr] DÉBUT de la vérification S-WiNG (Fréquence réglée : $interval min)")
+        Log.i("BridgeAlertWorker", "🔄 [$timeStr] DÉBUT de la vérification (S-WiNG + Météo-France)")
 
         try {
+            // 1. Vérification des alertes météo Météo-France (Vent violent / Ponts de Normandie et Tancarville)
+            checkMeteoWindAlertAndNotify()
+
+            // 2. Vérification classique des ponts levants (S-WiNG)
             checkBridgesAndNotify()
+
         } catch (e: CancellationException) {
             Log.i("BridgeAlertWorker", "ℹ️ Tâche interrompue / annulée proprement.")
             throw e
@@ -46,6 +59,58 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
         scheduleNextCheck(applicationContext, policy = ExistingWorkPolicy.APPEND_OR_REPLACE)
 
         return Result.success()
+    }
+
+    private suspend fun checkMeteoWindAlertAndNotify() {
+        try {
+            // Création d'un client OkHttp enrichi simulant une navigation web légitime
+            val okHttpClient = OkHttpClient.Builder()
+                .connectionSpecs(listOf(ConnectionSpec.MODERN_TLS, ConnectionSpec.COMPATIBLE_TLS))
+                .addInterceptor { chain ->
+                    val originalRequest = chain.request()
+                    val requestWithHeaders = originalRequest.newBuilder()
+                        .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                        .header("Accept", "application/json")
+                        .header("Connection", "keep-alive")
+                        .build()
+                    chain.proceed(requestWithHeaders)
+                }
+                .build()
+
+            val json = Json { ignoreUnknownKeys = true }
+            val retrofit = Retrofit.Builder()
+                .baseUrl("https://public-api.meteofrance.fr/") // Indispensable : se termine par un /
+                .client(okHttpClient)
+                .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+                .build()
+
+            val api = retrofit.create(MeteoFranceApi::class.java)
+            val repository = VigilanceRepository(api)
+
+            val isWindAlertActive = repository.isWindAlertOrangeOrRedForDept76()
+
+            val alertKey = "notified_meteo_wind_alert_76"
+            val alreadyNotified = prefs.getBoolean(alertKey, false)
+            val helper = BridgeNotificationHelper(applicationContext)
+
+            if (isWindAlertActive) {
+                if (!alreadyNotified) {
+                    Log.i("BridgeAlertWorker", "⚠️ Alerte Vent Orange/Rouge détectée en Seine-Maritime ! Envoi de la notification.")
+                    helper.sendClosureAlertNotification(
+                        "Ponts de Normandie & Tancarville",
+                        "⚠️ Vigilance Vent Orange/Rouge : Risque élevé de restrictions ou de fermeture sur les grands ponts !"
+                    )
+                    prefs.edit().putBoolean(alertKey, true).apply()
+                }
+            } else {
+                if (alreadyNotified) {
+                    Log.i("BridgeAlertWorker", "✅ Alerte vent levée en Seine-Maritime.")
+                    prefs.edit().putBoolean(alertKey, false).apply()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("BridgeAlertWorker", "❌ Erreur lors de la vérification Météo-France", e)
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -63,10 +128,8 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
             val helper = BridgeNotificationHelper(applicationContext)
             val locationManager = applicationContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
-            // Récupération de la préférence utilisateur (Par défaut : false -> on respecte la règle des 15 min)
             val bypassGpsCheck = prefs.getBoolean("bypass_gps_check", false)
 
-            // 1. Récupération de la dernière position connue (GPS ou Réseau) depuis le cache système
             val gpsLoc = if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
             } else null
@@ -82,36 +145,20 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                 }
             }
 
-            // 2. Gestion de l'âge de la position en cache (Max 15 minutes)
             if (bestLocation != null) {
                 val ageMinutes = (System.currentTimeMillis() - bestLocation!!.time) / (1000 * 60)
-                Log.i("BridgeAlertWorker", "📍 Position en cache trouvée : lat=${bestLocation!!.latitude}, lon=${bestLocation!!.longitude} (Âge : $ageMinutes minutes)")
-
-                val maxAgeMillis = 15 * 60 * 1000L // 15 minutes
+                val maxAgeMillis = 15 * 60 * 1000L
                 if (System.currentTimeMillis() - bestLocation!!.time > maxAgeMillis) {
                     if (bypassGpsCheck) {
-                        Log.w("BridgeAlertWorker", "⚠️ Position trop ancienne ($ageMinutes min), mais le mode 'Ignorer l'âge GPS' est activé. On l'utilise quand même.")
+                        Log.w("BridgeAlertWorker", "⚠️ Position trop ancienne ($ageMinutes min), mais le mode 'Ignorer l'âge GPS' est activé.")
                     } else {
-                        Log.w("BridgeAlertWorker", "⚠️ Position en cache trop ancienne ($ageMinutes minutes). Ignorée.")
                         bestLocation = null
                     }
                 }
-            } else {
-                Log.w("BridgeAlertWorker", "⚠️ Aucun cache GPS disponible.")
             }
 
-            // 3. Sécurité conditionnelle :
-            // Si aucune position n'est dispo ou valide ET que l'utilisateur n'a PAS activé le bypass, on stoppe.
-            // Si le bypass est activé, on autorise bestLocation à être null (la distance sera simplement ignorée/considérée comme valide pour les favoris).
-            if (bestLocation == null) {
-                if (bypassGpsCheck) {
-                    Log.i("BridgeAlertWorker", "ℹ️ Aucune position GPS valide, mais le mode 'Toujours notifier' est actif. Passage outre la vérification de distance.")
-                } else {
-                    Log.w("BridgeAlertWorker", "⚠️ Aucune position GPS valide ou récente. Notification ignorée pour préserver la distance.")
-                    return
-                }
-            } else {
-                Log.i("BridgeAlertWorker", "📍 Dernière position connue validée et utilisée.")
+            if (bestLocation == null && !bypassGpsCheck) {
+                return
             }
 
             for (bridge in bridges) {
@@ -119,7 +166,6 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                 val coords = BridgeCoordinates.map[bridgeName]
                 val isClosed = bridge.status == BridgeStatus.CLOSED
 
-                // Vérifie si le pont est dans les favoris (par son ID ou par son Nom)
                 val isFavorite = favoriteIds.contains(bridge.id) ||
                         favoriteIds.contains(bridgeName) ||
                         legacyFavorites.contains(bridgeName) ||
@@ -130,7 +176,6 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                 val notifiedReopenedKey = "notified_reopened_$bridgeName"
                 val alreadyNotifiedReopened = prefs.getBoolean(notifiedReopenedKey, false)
 
-                // 4. Calcul strict de la distance (uniquement si on a une position valide, ou ignoré si bypass et position null)
                 var distanceInKm: Double? = null
                 if (bestLocation != null && coords != null) {
                     val results = FloatArray(1)
@@ -142,12 +187,10 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                     distanceInKm = results[0] / 1000.0
                 }
 
-                // --- 1. Notification de Réouverture (Fermé -> Ouvert) ---
                 if (wasPreviouslyClosed && !isClosed) {
                     if (!alreadyNotifiedReopened) {
                         val distanceConditionMet = bypassGpsCheck || (distanceInKm != null && distanceInKm <= 3.0)
                         if (isFavorite && distanceConditionMet) {
-                            Log.i("BridgeAlertWorker", "🔔 Envoi notification Réouverture pour : $bridgeName")
                             helper.sendNowOpenNotification(
                                 bridgeName,
                                 "Bonne nouvelle : $bridgeName est à nouveau ouvert à la circulation !"
@@ -158,12 +201,10 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                     prefs.edit().putBoolean(wasClosedKey, false).apply()
                 }
 
-                // --- 2. Notification de Fermeture (Favori + Fermé) ---
                 val distanceConditionMetClosure = bypassGpsCheck || (distanceInKm != null && distanceInKm <= 10.0)
                 if (isFavorite && isClosed && distanceConditionMetClosure) {
                     val notifKey = "notified_closed_$bridgeName"
                     if (!prefs.getBoolean(notifKey, false)) {
-                        Log.i("BridgeAlertWorker", "🔔 Envoi notification Fermeture pour : $bridgeName")
                         helper.sendClosureAlertNotification(
                             bridgeName,
                             "Attention : $bridgeName est fermé !"
@@ -199,7 +240,6 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
         fun setInterval(context: Context, minutes: Int) {
             val prefs = context.getSharedPreferences("bridge_alert_prefs", Context.MODE_PRIVATE)
             prefs.edit().putInt(PREF_CHECK_INTERVAL_MINUTES, minutes).apply()
-            Log.i("BridgeAlertWorker", "⚙️ Changement de fréquence : $minutes minute(s).")
             scheduleNextCheck(context, minutes.toLong(), ExistingWorkPolicy.REPLACE)
         }
 
@@ -224,8 +264,6 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                 policy,
                 workRequest
             )
-
-            Log.i("BridgeAlertWorker", "⏰ Tâche planifiée : prochaine interrogation S-WiNG dans $interval minute(s) [Politique : $policy].")
         }
 
         fun schedulePeriodicCheck(context: Context) {

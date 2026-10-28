@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    kotlin("plugin.serialization") version "1.9.23"
 }
 
 // Fonction pour récupérer le nom de la version via Git (ex: "v1.2" ou le dernier tag)
@@ -83,7 +84,16 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
-
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0") // Ou converter-kotlinx-serialization si tu utilises kotlinx
     // OpenStreetMap pour Android (osmdroid)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
+    // 1. Convertisseur Kotlinx Serialization pour Retrofit
+    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+
+    // 2. Bibliothèque Kotlinx Serialization JSON
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // 3. OkHttp (si ce n'est pas déjà présent pour gérer les MediaType)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
