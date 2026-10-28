@@ -211,11 +211,11 @@ fun BridgeDetailScreen(
 }
 
 /**
- * Aperçu Compose (Preview) pour la vue détaillée d'un pont.
+ * Aperçu Compose (Preview) pour la vue détaillée d'un pont ouvert.
  */
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true, name = "Pont Ouvert")
 @Composable
-fun BridgeDetailScreenPreview() {
+fun BridgeDetailScreenOpenPreview() {
     EtatPontLeHavreTheme {
         BridgeDetailScreen(
             bridge = Bridge(
@@ -230,6 +230,33 @@ fun BridgeDetailScreenPreview() {
                 longitude = 0.1230,
                 isFavorite = true,
                 lastUpdated = "16:05"
+            ),
+            onBackClick = {},
+            onFavoriteToggle = {}
+        )
+    }
+}
+
+/**
+ * Aperçu Compose (Preview) pour la vue détaillée d'un pont fermé.
+ */
+@Preview(showBackground = true, showSystemUi = true, name = "Pont Fermé")
+@Composable
+fun BridgeDetailScreenClosedPreview() {
+    EtatPontLeHavreTheme {
+        BridgeDetailScreen(
+            bridge = Bridge(
+                id = "pont_7bis",
+                name = "Pont 7 bis",
+                code = "P7B-07",
+                description = "Pont levant du Canal de Tancarville - Fermé pour passage de navire",
+                status = BridgeStatus.CLOSED,
+                minutesUntilNextClosure = null,
+                nextManeuvers = emptyList(),
+                latitude = 49.4790,
+                longitude = 0.1510,
+                isFavorite = false,
+                lastUpdated = "16:10"
             ),
             onBackClick = {},
             onFavoriteToggle = {}

@@ -25,9 +25,12 @@ class SWingRepository(
     private val sharedPreferences: SharedPreferences =
         context.getSharedPreferences("bridge_favorites_prefs", Context.MODE_PRIVATE)
 
+    private val alertSharedPreferences: SharedPreferences =
+        context.getSharedPreferences("bridge_alert_prefs", Context.MODE_PRIVATE)
+
     private val favoriteIds: MutableSet<String> = loadFavoritesFromPrefs()
 
-    // Stocke les anciens statuts des ponts pour détecter les transitions (ex: Fermé -> Bientôt ouvert -> Ouvert)
+    // Stocke les anciens statuts des ponts pour détecter les transitions
     private val previousStatuses = mutableMapOf<String, BridgeStatus>()
 
     private fun loadFavoritesFromPrefs(): MutableSet<String> {
@@ -43,24 +46,36 @@ class SWingRepository(
         val remoteList = dataSource.fetchLeHavreBridges()
 
         val updatedList = remoteList.map { bridge ->
-            val isFav = favoriteIds.contains(bridge.id)
-            val previousStatus = previousStatuses[bridge.id]
+            val bridgeName = bridge.name
+            val isFav = favoriteIds.contains(bridge.id) || favoriteIds.contains(bridgeName)
+            val isClosed = bridge.status == BridgeStatus.CLOSED
+            val wasClosedKey = "was_closed_$bridgeName"
+            val wasPreviouslyClosed = alertSharedPreferences.getBoolean(wasClosedKey, false)
+            val notifiedReopenedKey = "notified_reopened_$bridgeName"
+            val alreadyNotifiedReopened = alertSharedPreferences.getBoolean(notifiedReopenedKey, false)
 
-            // Détection des notifications de transition de statut pour les ponts favoris
-            if (isFav && previousStatus != null && previousStatus != bridge.status) {
-                when {
-                    // Transition vers Bientôt ouvert (Bleu)
-                    bridge.status == BridgeStatus.SOON_OPEN -> {
-                        notificationHelper.sendSoonOpenNotification(bridge.name)
+            if (isFav) {
+                if (wasPreviouslyClosed && !isClosed) {
+                    if (!alreadyNotifiedReopened) {
+                        notificationHelper.sendNowOpenNotification(
+                            bridgeName,
+                            "Bonne nouvelle : $bridgeName est à nouveau ouvert à la circulation !"
+                        )
+                        alertSharedPreferences.edit()
+                            .putBoolean(notifiedReopenedKey, true)
+                            .putBoolean(wasClosedKey, false)
+                            .apply()
                     }
-                    // Transition de Bientôt ouvert/Fermé vers Ouvert aux véhicules (Vert)
-                    bridge.status == BridgeStatus.OPEN && (previousStatus == BridgeStatus.SOON_OPEN || previousStatus == BridgeStatus.CLOSED) -> {
-                        notificationHelper.sendNowOpenNotification(bridge.name)
-                    }
+                } else if (isClosed) {
+                    alertSharedPreferences.edit()
+                        .putBoolean(wasClosedKey, true)
+                        .putBoolean(notifiedReopenedKey, false)
+                        .apply()
+                } else if (bridge.status == BridgeStatus.SOON_OPEN) {
+                    notificationHelper.sendSoonOpenNotification(bridgeName)
                 }
             }
 
-            // Mémorise le statut actuel pour la prochaine comparaison
             previousStatuses[bridge.id] = bridge.status
 
             bridge.copy(

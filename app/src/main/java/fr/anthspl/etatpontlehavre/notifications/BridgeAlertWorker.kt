@@ -63,6 +63,9 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
             val helper = BridgeNotificationHelper(applicationContext)
             val locationManager = applicationContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
+            // Récupération de la préférence utilisateur (Par défaut : false -> on respecte la règle des 15 min)
+            val bypassGpsCheck = prefs.getBoolean("bypass_gps_check", false)
+
             // 1. Récupération de la dernière position connue (GPS ou Réseau) depuis le cache système
             val gpsLoc = if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
@@ -79,27 +82,37 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                 }
             }
 
-            // 2. Vérification de l'âge de la position en cache (Max 15 minutes)
+            // 2. Gestion de l'âge de la position en cache (Max 15 minutes)
             if (bestLocation != null) {
                 val ageMinutes = (System.currentTimeMillis() - bestLocation!!.time) / (1000 * 60)
                 Log.i("BridgeAlertWorker", "📍 Position en cache trouvée : lat=${bestLocation!!.latitude}, lon=${bestLocation!!.longitude} (Âge : $ageMinutes minutes)")
 
                 val maxAgeMillis = 15 * 60 * 1000L // 15 minutes
                 if (System.currentTimeMillis() - bestLocation!!.time > maxAgeMillis) {
-                    Log.w("BridgeAlertWorker", "⚠️ Position en cache trop ancienne ($ageMinutes minutes). Ignorée.")
-                    bestLocation = null
+                    if (bypassGpsCheck) {
+                        Log.w("BridgeAlertWorker", "⚠️ Position trop ancienne ($ageMinutes min), mais le mode 'Ignorer l'âge GPS' est activé. On l'utilise quand même.")
+                    } else {
+                        Log.w("BridgeAlertWorker", "⚠️ Position en cache trop ancienne ($ageMinutes minutes). Ignorée.")
+                        bestLocation = null
+                    }
                 }
             } else {
                 Log.w("BridgeAlertWorker", "⚠️ Aucun cache GPS disponible.")
             }
 
-            // 3. Sécurité absolue : Si aucune position valide ou récente n'est en cache, on stoppe net.
+            // 3. Sécurité conditionnelle :
+            // Si aucune position n'est dispo ou valide ET que l'utilisateur n'a PAS activé le bypass, on stoppe.
+            // Si le bypass est activé, on autorise bestLocation à être null (la distance sera simplement ignorée/considérée comme valide pour les favoris).
             if (bestLocation == null) {
-                Log.w("BridgeAlertWorker", "⚠️ Aucune position GPS valide ou récente. Notification ignorée pour préserver la distance.")
-                return
+                if (bypassGpsCheck) {
+                    Log.i("BridgeAlertWorker", "ℹ️ Aucune position GPS valide, mais le mode 'Toujours notifier' est actif. Passage outre la vérification de distance.")
+                } else {
+                    Log.w("BridgeAlertWorker", "⚠️ Aucune position GPS valide ou récente. Notification ignorée pour préserver la distance.")
+                    return
+                }
+            } else {
+                Log.i("BridgeAlertWorker", "📍 Dernière position connue validée et utilisée.")
             }
-
-            Log.i("BridgeAlertWorker", "📍 Dernière position connue validée et utilisée.")
 
             for (bridge in bridges) {
                 val bridgeName = bridge.name
@@ -114,10 +127,12 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
 
                 val wasClosedKey = "was_closed_$bridgeName"
                 val wasPreviouslyClosed = prefs.getBoolean(wasClosedKey, false)
+                val notifiedReopenedKey = "notified_reopened_$bridgeName"
+                val alreadyNotifiedReopened = prefs.getBoolean(notifiedReopenedKey, false)
 
-                // 4. Calcul strict de la distance avec la position en cache validée
+                // 4. Calcul strict de la distance (uniquement si on a une position valide, ou ignoré si bypass et position null)
                 var distanceInKm: Double? = null
-                if (coords != null) {
+                if (bestLocation != null && coords != null) {
                     val results = FloatArray(1)
                     Location.distanceBetween(
                         bestLocation!!.latitude, bestLocation!!.longitude,
@@ -127,34 +142,41 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                     distanceInKm = results[0] / 1000.0
                 }
 
-                // --- 1. Notification de Réouverture (Fermé -> Ouvert) [Seuil : 3 km] ---
+                // --- 1. Notification de Réouverture (Fermé -> Ouvert) ---
                 if (wasPreviouslyClosed && !isClosed) {
-                    if (isFavorite && distanceInKm != null && distanceInKm <= 3.0) {
-                        Log.i("BridgeAlertWorker", "🔔 Envoi notification Réouverture pour : $bridgeName (à ${String.format(Locale.FRANCE, "%.1f", distanceInKm)} km)")
-                        helper.sendReopeningNotification(
-                            bridgeName,
-                            "Bonne nouvelle : $bridgeName est à nouveau ouvert à la circulation !"
-                        )
+                    if (!alreadyNotifiedReopened) {
+                        val distanceConditionMet = bypassGpsCheck || (distanceInKm != null && distanceInKm <= 3.0)
+                        if (isFavorite && distanceConditionMet) {
+                            Log.i("BridgeAlertWorker", "🔔 Envoi notification Réouverture pour : $bridgeName")
+                            helper.sendNowOpenNotification(
+                                bridgeName,
+                                "Bonne nouvelle : $bridgeName est à nouveau ouvert à la circulation !"
+                            )
+                            prefs.edit().putBoolean(notifiedReopenedKey, true).apply()
+                        }
                     }
+                    prefs.edit().putBoolean(wasClosedKey, false).apply()
                 }
 
-                // --- 2. Notification de Fermeture (Favori + Fermé) [Seuil : 10 km] ---
-                if (isFavorite && isClosed && distanceInKm != null && distanceInKm <= 10.0) {
+                // --- 2. Notification de Fermeture (Favori + Fermé) ---
+                val distanceConditionMetClosure = bypassGpsCheck || (distanceInKm != null && distanceInKm <= 10.0)
+                if (isFavorite && isClosed && distanceConditionMetClosure) {
                     val notifKey = "notified_closed_$bridgeName"
                     if (!prefs.getBoolean(notifKey, false)) {
-                        Log.i("BridgeAlertWorker", "🔔 Envoi notification Fermeture pour : $bridgeName (à ${String.format(Locale.FRANCE, "%.1f", distanceInKm)} km)")
+                        Log.i("BridgeAlertWorker", "🔔 Envoi notification Fermeture pour : $bridgeName")
                         helper.sendClosureAlertNotification(
                             bridgeName,
                             "Attention : $bridgeName est fermé !"
                         )
                         prefs.edit().putBoolean(notifKey, true).apply()
                     }
-                } else {
+                    prefs.edit()
+                        .putBoolean(wasClosedKey, true)
+                        .putBoolean(notifiedReopenedKey, false)
+                        .apply()
+                } else if (!isClosed) {
                     prefs.edit().remove("notified_closed_$bridgeName").apply()
                 }
-
-                // --- 3. Mise à jour de l'état mémorisé du pont ---
-                prefs.edit().putBoolean(wasClosedKey, isClosed).apply()
             }
 
         } catch (e: CancellationException) {

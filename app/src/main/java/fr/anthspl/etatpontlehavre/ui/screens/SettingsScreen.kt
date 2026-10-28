@@ -39,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -53,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -60,6 +62,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.etatpontlehavre.notifications.BridgeAlertWorker
+import com.example.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
 
 @Composable
 fun SettingsScreen(
@@ -71,6 +74,10 @@ fun SettingsScreen(
     // Fréquence de rafraîchissement
     val currentInterval = remember { BridgeAlertWorker.getInterval(context) }
     var selectedInterval by remember { mutableIntStateOf(currentInterval) }
+
+    // Préférences des alertes (Bypass GPS)
+    val bridgeAlertPrefs = remember { context.getSharedPreferences("bridge_alert_prefs", Context.MODE_PRIVATE) }
+    var bypassGpsCheck by remember { mutableStateOf(bridgeAlertPrefs.getBoolean("bypass_gps_check", false)) }
 
     // État des permissions
     var hasLocationPermission by remember { mutableStateOf(checkLocationPermission(context)) }
@@ -93,8 +100,8 @@ fun SettingsScreen(
     }
 
     val intervalOptions = listOf(
-        1 to "1 min (Mode test intensif)",
-        3 to "3 min (Test rapide)",
+        1 to "1 min (Mode intensif)",
+        3 to "3 min (Mode rapide)",
         5 to "5 min (Recommandé)",
         10 to "10 min (Économique)",
         15 to "15 min (Standard Android)"
@@ -255,16 +262,54 @@ fun SettingsScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(10.dp))
+                // 2. Notifications système
+                                PermissionItem(
+                                    title = "Notifications push",
+                                    description = "Nécessaire pour vous prévenir lors des fermetures/réouvertures.",
+                                    icon = Icons.Default.Notifications,
+                                    isGranted = hasNotificationPermission,
+                                    onClick = { openAppSettings(context) }
+                                )
+
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 2. Notifications système
-                PermissionItem(
-                    title = "Notifications push",
-                    description = "Nécessaire pour vous prévenir lors des fermetures/réouvertures.",
-                    icon = Icons.Default.Notifications,
-                    isGranted = hasNotificationPermission,
-                    onClick = { openAppSettings(context) }
-                )
+
+                // Option Interrupteur Bypass GPS
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .clickable {
+                                            val isChecked = !bypassGpsCheck
+                                            bypassGpsCheck = isChecked
+                                            bridgeAlertPrefs.edit().putBoolean("bypass_gps_check", isChecked).apply()
+                                        }
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Toujours notifier les favoris",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "Ignorer l'exigence de position GPS récente et recevoir les alertes pour tous les ponts favoris.",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Switch(
+                                        checked = bypassGpsCheck,
+                                        onCheckedChange = { isChecked ->
+                                            bypassGpsCheck = isChecked
+                                            bridgeAlertPrefs.edit().putBoolean("bypass_gps_check", isChecked).apply()
+                                        }
+                                    )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -442,4 +487,17 @@ private fun openAppSettings(context: Context) {
         Uri.parse("package:${context.packageName}")
     )
     context.startActivity(intent)
+}
+
+/**
+ * Aperçu Compose (Preview) pour l'écran des paramètres.
+ */
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun SettingsScreenPreview() {
+    EtatPontLeHavreTheme {
+        SettingsScreen(
+            modifier = Modifier.fillMaxSize()
+        )
+    }
 }

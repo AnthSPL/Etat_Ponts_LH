@@ -53,6 +53,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import com.example.etatpontlehavre.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -295,8 +297,8 @@ fun HomeScreenContent(
                                         }
 
                                         Icon(
-                                            imageVector = Icons.Filled.Notifications,
-                                            contentDescription = null,
+                                            painter = painterResource(id = R.drawable.ic_bridge),
+                                            contentDescription = "Pont",
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -396,11 +398,11 @@ fun HomeScreenContent(
 }
 
 /**
- * Aperçu Compose (Preview) pour l'écran d'accueil principal.
+ * Aperçu Compose (Preview) pour l'écran d'accueil en état de succès.
  */
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true, name = "Liste - Succès")
 @Composable
-fun HomeScreenPreview() {
+fun HomeScreenSuccessPreview() {
     val dummyBridges = listOf(
         Bridge(
             id = "pont_rouge",
@@ -442,6 +444,42 @@ fun HomeScreenPreview() {
                 totalCount = 3,
                 isRefreshing = false
             ),
+            onBridgeClick = {},
+            onRefresh = {},
+            onToggleFavorite = {},
+            onFilterSelected = {},
+            onSearchQueryChange = {}
+        )
+    }
+}
+
+/**
+ * Aperçu Compose (Preview) pour l'écran d'accueil en chargement.
+ */
+@Preview(showBackground = true, showSystemUi = true, name = "Liste - Chargement")
+@Composable
+fun HomeScreenLoadingPreview() {
+    EtatPontLeHavreTheme {
+        HomeScreenContent(
+            uiState = BridgeUiState.Loading,
+            onBridgeClick = {},
+            onRefresh = {},
+            onToggleFavorite = {},
+            onFilterSelected = {},
+            onSearchQueryChange = {}
+        )
+    }
+}
+
+/**
+ * Aperçu Compose (Preview) pour l'écran d'accueil en cas d'erreur.
+ */
+@Preview(showBackground = true, showSystemUi = true, name = "Liste - Erreur")
+@Composable
+fun HomeScreenErrorPreview() {
+    EtatPontLeHavreTheme {
+        HomeScreenContent(
+            uiState = BridgeUiState.Error("Impossible de se connecter au serveur Haropa Port S-WING. Vérifiez votre connexion."),
             onBridgeClick = {},
             onRefresh = {},
             onToggleFavorite = {},

@@ -77,7 +77,39 @@ class BridgeNotificationHelper(private val context: Context) {
     /**
      * Notification pour la réouverture d'un pont favori (icône coche verte tick).
      */
-    fun sendReopeningNotification(bridgeName: String, message: String) {
+    fun sendReopeningNotification(
+        bridgeName: String,
+        message: String = "Bonne nouvelle : $bridgeName est à nouveau ouvert à la circulation !"
+    ) {
+        sendNowOpenNotification(bridgeName, message)
+    }
+
+    /**
+     * Notification pour le passage du statut Fermé → Bientôt ouvert aux véhicules (Bleu).
+     */
+    fun sendSoonOpenNotification(bridgeName: String) {
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle("🔵 Réouverture Proche : $bridgeName")
+            .setContentText("$bridgeName est BIENTÔT OUVERT aux véhicules !")
+            .setStyle(NotificationCompat.BigTextStyle().bigText("La manœuvre sur $bridgeName se termine. La circulation routière va pouvoir reprendre très prochainement."))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(bridgeName.hashCode() + 100, notification)
+    }
+
+    /**
+     * Notification pour le passage du statut Bientôt ouvert → Ouvert aux véhicules (Vert).
+     */
+    fun sendNowOpenNotification(
+        bridgeName: String,
+        message: String = "$bridgeName est désormais OUVERT aux véhicules !"
+    ) {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -105,44 +137,7 @@ class BridgeNotificationHelper(private val context: Context) {
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(bridgeName.hashCode() + 300, notification)
-    }
-
-    /**
-     * Notification pour le passage du statut Fermé → Bientôt ouvert aux véhicules (Bleu).
-     */
-    fun sendSoonOpenNotification(bridgeName: String) {
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("🔵 Réouverture Proche : $bridgeName")
-            .setContentText("$bridgeName est BIENTÔT OUVERT aux véhicules !")
-            .setStyle(NotificationCompat.BigTextStyle().bigText("La manœuvre sur $bridgeName se termine. La circulation routière va pouvoir reprendre très prochainement."))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .build()
-
-        notificationManager.notify(bridgeName.hashCode() + 100, notification)
-    }
-
-    /**
-     * Notification pour le passage du statut Bientôt ouvert → Ouvert aux véhicules (Vert).
-     */
-    fun sendNowOpenNotification(bridgeName: String) {
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_notification_tick)
-            .setContentTitle("🟢 Pont Ouvert : $bridgeName")
-            .setContentText("$bridgeName est désormais OUVERT aux véhicules !")
-            .setStyle(NotificationCompat.BigTextStyle().bigText("Le pont $bridgeName est totalement rouvert à la circulation."))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .build()
-
+        // Identifiant unique unifié pour la réouverture (hashCode + 200) afin d'éviter tout doublon
         notificationManager.notify(bridgeName.hashCode() + 200, notification)
     }
 }
