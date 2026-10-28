@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre
+package fr.anthspl.etatpontlehavre
 
 import android.Manifest
 import android.content.Context
@@ -27,11 +27,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.etatpontlehavre.ui.screens.BridgeDetailScreen
-import com.example.etatpontlehavre.ui.screens.HomeScreen
-import com.example.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
-import com.example.etatpontlehavre.ui.viewmodel.BridgeUiState
-import com.example.etatpontlehavre.ui.viewmodel.BridgeViewModel
+import fr.anthspl.etatpontlehavre.ui.screens.BridgeDetailScreen
+import fr.anthspl.etatpontlehavre.ui.screens.HomeScreen
+import fr.anthspl.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
+import fr.anthspl.etatpontlehavre.ui.viewmodel.BridgeUiState
+import fr.anthspl.etatpontlehavre.ui.viewmodel.BridgeViewModel
 import org.osmdroid.config.Configuration
 
 /**

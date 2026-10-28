@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.notifications
+package fr.anthspl.etatpontlehavre.notifications
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,8 +8,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.example.etatpontlehavre.R
-import com.example.etatpontlehavre.data.model.Bridge
+import fr.anthspl.etatpontlehavre.R
+import fr.anthspl.etatpontlehavre.data.model.Bridge
 
 /**
  * Assistant de création et d'émission des notifications push système.

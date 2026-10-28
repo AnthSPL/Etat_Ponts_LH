@@ -1,7 +1,7 @@
 package fr.anthspl.etatpontlehavre
 
 import android.app.Application
-import com.example.etatpontlehavre.notifications.BridgeAlertWorker
+import fr.anthspl.etatpontlehavre.notifications.BridgeAlertWorker
 
 class EtatPontLeHavre : Application() {
     override fun onCreate() {

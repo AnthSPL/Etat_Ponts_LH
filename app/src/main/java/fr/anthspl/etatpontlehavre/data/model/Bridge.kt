@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.data.model
+package fr.anthspl.etatpontlehavre.data.model
 
 import androidx.compose.ui.graphics.Color
 

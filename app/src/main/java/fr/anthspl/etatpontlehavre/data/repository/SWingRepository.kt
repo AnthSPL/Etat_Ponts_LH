@@ -1,11 +1,11 @@
-package com.example.etatpontlehavre.data.repository
+package fr.anthspl.etatpontlehavre.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.example.etatpontlehavre.data.model.Bridge
-import com.example.etatpontlehavre.data.model.BridgeStatus
-import com.example.etatpontlehavre.data.remote.SWingDataSource
-import com.example.etatpontlehavre.notifications.BridgeNotificationHelper
+import fr.anthspl.etatpontlehavre.data.model.Bridge
+import fr.anthspl.etatpontlehavre.data.model.BridgeStatus
+import fr.anthspl.etatpontlehavre.data.remote.SWingDataSource
+import fr.anthspl.etatpontlehavre.notifications.BridgeNotificationHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

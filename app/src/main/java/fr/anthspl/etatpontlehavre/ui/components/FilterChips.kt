@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.ui.components
+package fr.anthspl.etatpontlehavre.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.etatpontlehavre.ui.viewmodel.FilterType
+import fr.anthspl.etatpontlehavre.ui.viewmodel.FilterType
 
 /**
  * Composant réutilisable affichant une rangée horizontale de puces de filtrage ([FilterChip]).

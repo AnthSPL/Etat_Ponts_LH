@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.notifications
+package fr.anthspl.etatpontlehavre.notifications
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -12,9 +12,9 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.example.etatpontlehavre.data.model.BridgeCoordinates
-import com.example.etatpontlehavre.data.model.BridgeStatus
-import com.example.etatpontlehavre.data.remote.SWingDataSource
+import fr.anthspl.etatpontlehavre.data.model.BridgeCoordinates
+import fr.anthspl.etatpontlehavre.data.model.BridgeStatus
+import fr.anthspl.etatpontlehavre.data.remote.SWingDataSource
 import kotlinx.coroutines.CancellationException
 import java.text.SimpleDateFormat
 import java.util.Date

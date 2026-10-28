@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.ui.screens
+package fr.anthspl.etatpontlehavre.ui.screens
 
 import android.content.Context
 import android.content.Intent
@@ -54,7 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import com.example.etatpontlehavre.R
+import fr.anthspl.etatpontlehavre.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -62,17 +62,17 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.etatpontlehavre.data.model.Bridge
-import com.example.etatpontlehavre.data.model.BridgeStatus
-import com.example.etatpontlehavre.ui.components.BridgeCard
-import com.example.etatpontlehavre.ui.components.BridgeMapScreen
-import com.example.etatpontlehavre.ui.components.FilterChipsRow
-import com.example.etatpontlehavre.ui.components.WelcomeDisclaimerDialog
-import com.example.etatpontlehavre.ui.components.shouldShowDisclaimer
-import com.example.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
-import com.example.etatpontlehavre.ui.viewmodel.BridgeUiState
-import com.example.etatpontlehavre.ui.viewmodel.BridgeViewModel
-import com.example.etatpontlehavre.ui.viewmodel.FilterType
+import fr.anthspl.etatpontlehavre.data.model.Bridge
+import fr.anthspl.etatpontlehavre.data.model.BridgeStatus
+import fr.anthspl.etatpontlehavre.ui.components.BridgeCard
+import fr.anthspl.etatpontlehavre.ui.components.BridgeMapScreen
+import fr.anthspl.etatpontlehavre.ui.components.FilterChipsRow
+import fr.anthspl.etatpontlehavre.ui.components.WelcomeDisclaimerDialog
+import fr.anthspl.etatpontlehavre.ui.components.shouldShowDisclaimer
+import fr.anthspl.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
+import fr.anthspl.etatpontlehavre.ui.viewmodel.BridgeUiState
+import fr.anthspl.etatpontlehavre.ui.viewmodel.BridgeViewModel
+import fr.anthspl.etatpontlehavre.ui.viewmodel.FilterType
 
 enum class AppTab(
     val title: String,

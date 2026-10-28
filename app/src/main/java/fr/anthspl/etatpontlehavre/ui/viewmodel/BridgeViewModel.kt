@@ -1,11 +1,11 @@
-package com.example.etatpontlehavre.ui.viewmodel
+package fr.anthspl.etatpontlehavre.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.etatpontlehavre.data.model.Bridge
-import com.example.etatpontlehavre.data.model.BridgeStatus
-import com.example.etatpontlehavre.data.repository.SWingRepository
+import fr.anthspl.etatpontlehavre.data.model.Bridge
+import fr.anthspl.etatpontlehavre.data.model.BridgeStatus
+import fr.anthspl.etatpontlehavre.data.repository.SWingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

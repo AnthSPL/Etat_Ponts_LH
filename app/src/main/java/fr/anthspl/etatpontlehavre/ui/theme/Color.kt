@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.ui.theme
+package fr.anthspl.etatpontlehavre.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

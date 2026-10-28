@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.ui.components
+package fr.anthspl.etatpontlehavre.ui.components
 
 import android.content.Context
 import android.content.Intent
@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.etatpontlehavre.R
+import fr.anthspl.etatpontlehavre.R
 
 private const val PREFS_NAME = "disclaimer_prefs"
 private const val KEY_DONT_SHOW_AGAIN = "dont_show_disclaimer"

@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.ui.theme
+package fr.anthspl.etatpontlehavre.ui.theme
 
 import android.app.Activity
 import android.os.Build

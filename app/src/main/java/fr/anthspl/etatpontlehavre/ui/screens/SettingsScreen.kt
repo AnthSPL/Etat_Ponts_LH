@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.ui.screens
+package fr.anthspl.etatpontlehavre.ui.screens
 
 import android.Manifest
 import android.content.Context
@@ -61,8 +61,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.etatpontlehavre.notifications.BridgeAlertWorker
-import com.example.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
+import fr.anthspl.etatpontlehavre.notifications.BridgeAlertWorker
+import fr.anthspl.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
 
 @Composable
 fun SettingsScreen(

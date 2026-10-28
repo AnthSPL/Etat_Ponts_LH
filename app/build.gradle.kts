@@ -3,35 +3,60 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-android {
-    namespace = "com.example.etatpontlehavre"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+// Fonction pour récupérer le nom de la version via Git (ex: "v1.2" ou le dernier tag)
+fun getGitVersionName(): String {
+    return try {
+        providers.exec {
+            commandLine("git", "describe", "--tags", "--always")
+        }.standardOutput.asText.get().trim().ifEmpty { "1.2" }
+    } catch (_: Exception) {
+        "1.2"
     }
+}
+
+// Fonction pour générer un versionCode incrémentiel basé sur le nombre de commits Git
+fun getGitVersionCode(): Int {
+    return try {
+        val count = providers.exec {
+            commandLine("git", "rev-list", "--count", "HEAD")
+        }.standardOutput.asText.get().trim()
+        count.toIntOrNull() ?: 1
+    } catch (_: Exception) {
+        1
+    }
+}
+
+android {
+    namespace = "fr.anthspl.etatpontlehavre"
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.etatpontlehavre"
-        minSdk = 24
+        applicationId = "fr.anthspl.etatpontlehavre"
+        minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+
+        // --- UTILISATION AUTOMATIQUE GIT ---
+        versionCode = getGitVersionCode() // S'incrémente à chaque commit
+        versionName = getGitVersionName() // Prend le tag Git (ex: v1.2) ou l'ID du commit
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            isMinifyEnabled = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     buildFeatures {
         compose = true
     }
@@ -58,6 +83,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
     // OpenStreetMap pour Android (osmdroid)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
 }

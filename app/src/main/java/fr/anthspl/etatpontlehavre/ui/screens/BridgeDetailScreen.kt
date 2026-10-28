@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.ui.screens
+package fr.anthspl.etatpontlehavre.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -41,9 +41,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.etatpontlehavre.data.model.Bridge
-import com.example.etatpontlehavre.data.model.BridgeStatus
-import com.example.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
+import fr.anthspl.etatpontlehavre.data.model.Bridge
+import fr.anthspl.etatpontlehavre.data.model.BridgeStatus
+import fr.anthspl.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
 
 /**
  * Écran de détail affichant les informations complètes d'un pont sélectionné.

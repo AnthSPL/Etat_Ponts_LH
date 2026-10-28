@@ -1,9 +1,9 @@
-package com.example.etatpontlehavre.data.remote
+package fr.anthspl.etatpontlehavre.data.remote
 
 import android.util.Log
-import com.example.etatpontlehavre.data.model.Bridge
-import com.example.etatpontlehavre.data.model.BridgeCoordinates
-import com.example.etatpontlehavre.data.model.BridgeStatus
+import fr.anthspl.etatpontlehavre.data.model.Bridge
+import fr.anthspl.etatpontlehavre.data.model.BridgeCoordinates
+import fr.anthspl.etatpontlehavre.data.model.BridgeStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject

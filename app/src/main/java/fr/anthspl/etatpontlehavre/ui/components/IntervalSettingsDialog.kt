@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.ui.components
+package fr.anthspl.etatpontlehavre.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -30,7 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.etatpontlehavre.notifications.BridgeAlertWorker
+import fr.anthspl.etatpontlehavre.notifications.BridgeAlertWorker
 
 @Composable
 fun IntervalSettingsDialog(

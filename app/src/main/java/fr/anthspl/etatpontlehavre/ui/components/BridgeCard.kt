@@ -1,4 +1,4 @@
-package com.example.etatpontlehavre.ui.components
+package fr.anthspl.etatpontlehavre.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -35,7 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.etatpontlehavre.data.model.Bridge
+import fr.anthspl.etatpontlehavre.data.model.Bridge
 
 @Composable
 fun BridgeCard(
