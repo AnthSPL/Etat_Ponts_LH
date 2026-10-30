@@ -40,9 +40,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.anthspl.etatpontlehavre.R
+import fr.anthspl.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
 
 private const val PREFS_NAME = "disclaimer_prefs"
 private const val KEY_DONT_SHOW_AGAIN = "dont_show_disclaimer"
@@ -239,4 +241,17 @@ fun WelcomeDisclaimerDialog(
             }
         }
     )
+}
+
+/**
+ * Aperçu Compose (Preview) pour la boîte de dialogue de bienvenue.
+ */
+@Preview(showBackground = true, name = "Dialogue Avertissement")
+@Composable
+fun WelcomeDisclaimerDialogPreview() {
+    EtatPontLeHavreTheme {
+        WelcomeDisclaimerDialog(
+            onDismiss = {}
+        )
+    }
 }

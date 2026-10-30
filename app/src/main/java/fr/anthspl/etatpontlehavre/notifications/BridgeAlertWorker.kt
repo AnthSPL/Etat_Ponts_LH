@@ -79,7 +79,7 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
 
             val json = Json { ignoreUnknownKeys = true }
             val retrofit = Retrofit.Builder()
-                .baseUrl("https://public-api.meteofrance.fr/") // Indispensable : se termine par un /
+                .baseUrl("https://public-api.meteofrance.fr/")
                 .client(okHttpClient)
                 .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
                 .build()
@@ -98,7 +98,7 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                     Log.i("BridgeAlertWorker", "⚠️ Alerte Vent Orange/Rouge détectée en Seine-Maritime ! Envoi de la notification.")
                     helper.sendClosureAlertNotification(
                         "Ponts de Normandie & Tancarville",
-                        "⚠️ Vigilance Vent Orange/Rouge : Risque élevé de restrictions ou de fermeture sur les grands ponts !"
+                        "⚠️ Vigilance Vent Orange/Rouge : Risque élevé de restrictions ou de fermeture sur les ponts de Tancarville et Normandie!"
                     )
                     prefs.edit().putBoolean(alertKey, true).apply()
                 }

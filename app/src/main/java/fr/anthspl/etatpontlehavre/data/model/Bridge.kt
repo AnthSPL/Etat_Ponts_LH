@@ -26,6 +26,9 @@ enum class BridgeStatus(
     /** Code 1 sur S-WiNG : Fermé (Rouge). */
     CLOSED("Fermé", "Pont levé / Circulation interrompue", 0xFFD32F2F),
 
+    /** Hors-ligne / Perte de connexion réseau (Gris). */
+    OFFLINE("Perte connexion réseau", "Attente réseau", 0xFF757575),
+
     /** Statut indisponible ou non communiqué (Gris). */
     UNKNOWN("Inconnu", "Statut indisponible", 0xFF757575);
 

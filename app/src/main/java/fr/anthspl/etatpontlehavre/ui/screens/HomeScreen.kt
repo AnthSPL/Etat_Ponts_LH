@@ -100,37 +100,6 @@ enum class AppTab(
     )
 }
 
-fun openNotificationListenerSettings(context: Context) {
-    val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-    context.startActivity(intent)
-}
-
-fun isNotificationServiceEnabled(context: Context): Boolean {
-    val flat = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners")
-    return flat != null && flat.contains(context.packageName)
-}
-
-@Composable
-fun GpsAlertBanner() {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var isEnabled by remember { mutableStateOf(isNotificationServiceEnabled(context)) }
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                isEnabled = isNotificationServiceEnabled(context)
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-
-}
-
 @Composable
 fun HomeScreen(
     viewModel: BridgeViewModel,
@@ -256,9 +225,6 @@ fun HomeScreenContent(
 
                         is BridgeUiState.Success -> {
                             Column(modifier = Modifier.fillMaxSize()) {
-                                // Bandeau d'activation GPS
-                                GpsAlertBanner()
-
                                 // Bandeau Synthèse d'Ouverture & Alertes
                                 Surface(
                                     modifier = Modifier

@@ -82,7 +82,6 @@ fun SettingsScreen(
     // État des permissions
     var hasLocationPermission by remember { mutableStateOf(checkLocationPermission(context)) }
     var hasNotificationPermission by remember { mutableStateOf(checkNotificationPermission(context)) }
-    var isNotificationServiceEnabledState by remember { mutableStateOf(isNotificationServiceEnabled(context)) }
 
     // Mettre à jour les états lors du retour au premier plan (ex: fermeture des paramêtres système)
     DisposableEffect(lifecycleOwner) {
@@ -90,7 +89,6 @@ fun SettingsScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 hasLocationPermission = checkLocationPermission(context)
                 hasNotificationPermission = checkNotificationPermission(context)
-                isNotificationServiceEnabledState = isNotificationServiceEnabled(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

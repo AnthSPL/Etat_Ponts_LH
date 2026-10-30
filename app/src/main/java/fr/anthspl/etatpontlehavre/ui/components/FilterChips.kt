@@ -10,7 +10,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import fr.anthspl.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
 import fr.anthspl.etatpontlehavre.ui.viewmodel.FilterType
 
 /**
@@ -45,5 +47,19 @@ fun FilterChipsRow(
                 )
             )
         }
+    }
+}
+
+/**
+ * Aperçu Compose (Preview) pour la barre de filtres.
+ */
+@Preview(showBackground = true, name = "Puces de filtrage")
+@Composable
+fun FilterChipsRowPreview() {
+    EtatPontLeHavreTheme {
+        FilterChipsRow(
+            selectedFilter = FilterType.ALL,
+            onFilterSelected = {}
+        )
     }
 }

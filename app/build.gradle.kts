@@ -9,9 +9,9 @@ fun getGitVersionName(): String {
     return try {
         providers.exec {
             commandLine("git", "describe", "--tags", "--always")
-        }.standardOutput.asText.get().trim().ifEmpty { "1.2" }
+        }.standardOutput.asText.get().trim().ifEmpty { "1.3" }
     } catch (_: Exception) {
-        "1.2"
+        "1.3"
     }
 }
 

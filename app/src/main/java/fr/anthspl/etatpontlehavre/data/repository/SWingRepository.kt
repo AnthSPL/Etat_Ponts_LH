@@ -6,6 +6,7 @@ import fr.anthspl.etatpontlehavre.data.model.Bridge
 import fr.anthspl.etatpontlehavre.data.model.BridgeStatus
 import fr.anthspl.etatpontlehavre.data.remote.SWingDataSource
 import fr.anthspl.etatpontlehavre.notifications.BridgeNotificationHelper
+import fr.anthspl.etatpontlehavre.widget.FavoriteBridgesWidgetProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -85,6 +86,7 @@ class SWingRepository(
         }
 
         _bridgesFlow.value = updatedList
+        FavoriteBridgesWidgetProvider.updateAllWidgets(context)
         return updatedList
     }
 
@@ -104,6 +106,8 @@ class SWingRepository(
                 bridge
             }
         }
+
+        FavoriteBridgesWidgetProvider.updateAllWidgets(context)
     }
 
     fun getFavoriteBridgesNeedingAlert(): List<Bridge> {
