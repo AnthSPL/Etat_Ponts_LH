@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_header_bg"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <!-- En-tête du Widget -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="6dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:contentDescription="@string/app_name"
+                android:src="@drawable/ic_bridge" />
+
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="Ponts Favoris"
+                android:textColor="#0A2540"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/widget_btn_refresh"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Rafraîchir"
+            android:padding="4dp"
+            android:src="@android:drawable/ic_popup_sync" />
+
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/widget_updated_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="6dp"
+        android:text="Mis à jour à l'instant"
+        android:textColor="#666666"
+        android:textSize="10sp" />
+
+    <!-- Liste des ponts favoris -->
+    <ListView
+        android:id="@+id/widget_favorite_bridges_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:divider="@null"
+        android:dividerHeight="6dp"
+        android:scrollbars="none" />
+
+    <!-- Vue vide quand aucun favori n'est sélectionné -->
+    <TextView
+        android:id="@+id/widget_empty_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="Aucun pont favori ⭐\nAjoutez des favoris dans l'application."
+        android:textColor="#666666"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+</LinearLayout>

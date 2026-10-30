@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/app_name"
+    android:initialLayout="@layout/widget_favorite_bridges"
+    android:minWidth="180dp"
+    android:minHeight="180dp"
+    android:previewImage="@drawable/ic_bridge"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="3"
+    android:targetCellHeight="3"
+    android:updatePeriodMillis="900000"
+    android:widgetCategory="home_screen" />
