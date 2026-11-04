@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
         Configuration.getInstance().userAgentValue = packageName
 
         // Demande dynamique des permissions nécessaires (Localisation & Notifications)
-checkAndRequestPermissions()
+        checkAndRequestPermissions()
 
         setContent {
             EtatPontLeHavreTheme {

@@ -12,7 +12,7 @@ import fr.anthspl.etatpontlehavre.R
 import fr.anthspl.etatpontlehavre.data.model.Bridge
 
 /**
- * Assistant de création et d'émission des notifications push système compatibles Android Auto.
+ * Assistant de création et d'émission des notifications push système pleinement optimisées pour Android Auto et smartphone.
  */
 class BridgeNotificationHelper(private val context: Context) {
 
@@ -29,6 +29,9 @@ class BridgeNotificationHelper(private val context: Context) {
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel(channelId, name, importance).apply {
                 description = descriptionText
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 250, 250, 250)
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
             }
             val notificationManager: NotificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -49,6 +52,14 @@ class BridgeNotificationHelper(private val context: Context) {
         )
     }
 
+    private fun createCarAction(pendingIntent: PendingIntent): NotificationCompat.Action {
+        return NotificationCompat.Action.Builder(
+            R.drawable.ic_bridge,
+            "Voir dans l'application",
+            pendingIntent
+        ).build()
+    }
+
     fun sendClosureAlertNotification(bridge: Bridge, message: String = "Fermeture détectée sur ce pont") {
         sendClosureAlertNotification(bridge.name, message)
     }
@@ -56,26 +67,70 @@ class BridgeNotificationHelper(private val context: Context) {
     /**
      * Notification pour la fermeture d'un pont favori.
      */
-    fun sendClosureAlertNotification(bridgeName: String, message: String = "Fermeture détectée sur ce pont") {
+    fun sendClosureAlertNotification(bridgeName: String, message: String = "Attention : Ce pont est fermé !") {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val pendingIntent = createAppPendingIntent()
+        val carAction = createCarAction(pendingIntent)
+
+        val fullTitle = "⚠️ Pont Fermé : $bridgeName"
+
         val carExtender = NotificationCompat.CarExtender()
+            .setColor(0xFFD32F2F.toInt())
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notification_warning)
-            .setContentTitle("⚠️ Pont Fermé : $bridgeName")
+            .setContentTitle(fullTitle)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)
+            .addAction(carAction)
             .setAutoCancel(true)
             .extend(carExtender)
             .build()
 
+        notificationManager.notify(bridgeName.hashCode(), notification)
+    }
+
+    /**
+     * Notification de rappel pour un pont restant fermé depuis plus de 2 heures.
+     */
+    fun sendClosureReminderNotification(
+        bridgeName: String,
+        message: String = "Rappel : $bridgeName est toujours fermé à la circulation."
+    ) {
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val pendingIntent = createAppPendingIntent()
+        val carAction = createCarAction(pendingIntent)
+
+        val fullTitle = "⌛ Rappel Fermeture : $bridgeName"
+
+        val carExtender = NotificationCompat.CarExtender()
+            .setColor(0xFFE65100.toInt())
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_notification_warning)
+            .setContentTitle(fullTitle)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setContentIntent(pendingIntent)
+            .addAction(carAction)
+            .setAutoCancel(true)
+            .extend(carExtender)
+            .build()
+
+        // Même identifiant que la fermeture initiale pour mettre à jour la notification sur le téléphone
         notificationManager.notify(bridgeName.hashCode(), notification)
     }
 
@@ -97,17 +152,25 @@ class BridgeNotificationHelper(private val context: Context) {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val pendingIntent = createAppPendingIntent()
+        val carAction = createCarAction(pendingIntent)
+
+        val fullTitle = "🔵 Réouverture Proche : $bridgeName"
+        val message = "$bridgeName est BIENTÔT OUVERT aux véhicules ! La manœuvre se termine."
+
         val carExtender = NotificationCompat.CarExtender()
+            .setColor(0xFF0288D1.toInt())
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("🔵 Réouverture Proche : $bridgeName")
-            .setContentText("$bridgeName est BIENTÔT OUVERT aux véhicules !")
-            .setStyle(NotificationCompat.BigTextStyle().bigText("La manœuvre sur $bridgeName se termine. La circulation routière va pouvoir reprendre très prochainement."))
+            .setContentTitle(fullTitle)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)
+            .addAction(carAction)
             .setAutoCancel(true)
             .extend(carExtender)
             .build()
@@ -126,17 +189,24 @@ class BridgeNotificationHelper(private val context: Context) {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val pendingIntent = createAppPendingIntent()
+        val carAction = createCarAction(pendingIntent)
+
+        val fullTitle = "✅ Pont Ouvert : $bridgeName"
+
         val carExtender = NotificationCompat.CarExtender()
+            .setColor(0xFF2E7D32.toInt())
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notification_tick)
-            .setContentTitle("✅ Pont Ouvert : $bridgeName")
+            .setContentTitle(fullTitle)
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent)
+            .addAction(carAction)
             .setAutoCancel(true)
             .extend(carExtender)
             .build()

@@ -61,6 +61,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.work.ExistingWorkPolicy
+import fr.anthspl.etatpontlehavre.geofence.GeofenceManager
 import fr.anthspl.etatpontlehavre.notifications.BridgeAlertWorker
 import fr.anthspl.etatpontlehavre.ui.theme.EtatPontLeHavreTheme
 
@@ -75,9 +77,10 @@ fun SettingsScreen(
     val currentInterval = remember { BridgeAlertWorker.getInterval(context) }
     var selectedInterval by remember { mutableIntStateOf(currentInterval) }
 
-    // Préférences des alertes (Bypass GPS)
+    // Préférences des alertes (Bypass GPS & Geofencing)
     val bridgeAlertPrefs = remember { context.getSharedPreferences("bridge_alert_prefs", Context.MODE_PRIVATE) }
     var bypassGpsCheck by remember { mutableStateOf(bridgeAlertPrefs.getBoolean("bypass_gps_check", false)) }
+    var isAutoGeofenceActive by remember { mutableStateOf(bridgeAlertPrefs.getBoolean("use_auto_geofence_interval", true)) }
 
     // État des permissions
     var hasLocationPermission by remember { mutableStateOf(checkLocationPermission(context)) }
@@ -102,7 +105,8 @@ fun SettingsScreen(
         3 to "3 min (Mode rapide)",
         5 to "5 min (Recommandé)",
         10 to "10 min (Économique)",
-        15 to "15 min (Standard Android)"
+        15 to "15 min (Standard Android)",
+        60 to "60 min (1 heure)"
     )
 
     Column(
@@ -133,15 +137,68 @@ fun SettingsScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                Text(
-                    text = "Définit la fréquence de rafraîchissement en arrière-plan pour les alertes :",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Option Interrupteur Mode Automatique / Geofencing
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            val newValue = !isAutoGeofenceActive
+                            isAutoGeofenceActive = newValue
+                            bridgeAlertPrefs.edit().putBoolean("use_auto_geofence_interval", newValue).apply()
+                            if (newValue) {
+                                GeofenceManager.setupGeofences(context)
+                                BridgeAlertWorker.scheduleNextCheck(context, policy = ExistingWorkPolicy.REPLACE)
+                            } else {
+                                GeofenceManager.removeGeofences(context)
+                                BridgeAlertWorker.setInterval(context, selectedInterval)
+                            }
+                        }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Adaptation automatique",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Ajuste selon la distance : 1min (<10km), 5min (<15km), 10min (<20km), 30min (<30km), 1h (>30km)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Switch(
+                        checked = isAutoGeofenceActive,
+                        onCheckedChange = { isChecked ->
+                            isAutoGeofenceActive = isChecked
+                            bridgeAlertPrefs.edit().putBoolean("use_auto_geofence_interval", isChecked).apply()
+                            if (isChecked) {
+                                GeofenceManager.setupGeofences(context)
+                                BridgeAlertWorker.scheduleNextCheck(context, policy = ExistingWorkPolicy.REPLACE)
+                            } else {
+                                GeofenceManager.removeGeofences(context)
+                                BridgeAlertWorker.setInterval(context, selectedInterval)
+                            }
+                        }
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = if (isAutoGeofenceActive) "Ou forcez une fréquence fixe manuelle :" else "Choix de la fréquence fixe :",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 intervalOptions.forEach { (minutes, label) ->
                     Row(
@@ -150,15 +207,21 @@ fun SettingsScreen(
                             .clip(RoundedCornerShape(8.dp))
                             .clickable {
                                 selectedInterval = minutes
+                                isAutoGeofenceActive = false
+                                bridgeAlertPrefs.edit().putBoolean("use_auto_geofence_interval", false).apply()
+                                GeofenceManager.removeGeofences(context)
                                 BridgeAlertWorker.setInterval(context, minutes)
                             }
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
-                            selected = (selectedInterval == minutes),
+                            selected = (!isAutoGeofenceActive && selectedInterval == minutes),
                             onClick = {
                                 selectedInterval = minutes
+                                isAutoGeofenceActive = false
+                                bridgeAlertPrefs.edit().putBoolean("use_auto_geofence_interval", false).apply()
+                                GeofenceManager.removeGeofences(context)
                                 BridgeAlertWorker.setInterval(context, minutes)
                             }
                         )
@@ -166,7 +229,7 @@ fun SettingsScreen(
                         Text(
                             text = label,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (selectedInterval == minutes) FontWeight.Bold else FontWeight.Normal
+                            fontWeight = if (!isAutoGeofenceActive && selectedInterval == minutes) FontWeight.Bold else FontWeight.Normal
                         )
                     }
                 }

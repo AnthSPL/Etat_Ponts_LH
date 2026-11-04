@@ -88,6 +88,11 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0") // Ou converter-kotlinx-serialization si tu utilises kotlinx
     // OpenStreetMap pour Android (osmdroid)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
+
+    // Google Play Services Location (Geofencing API) & Coroutines Play Services
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.0")
+
     // 1. Convertisseur Kotlinx Serialization pour Retrofit
     implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
 

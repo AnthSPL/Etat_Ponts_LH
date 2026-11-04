@@ -56,6 +56,12 @@
         <service
             android:name=".widget.FavoriteBridgesWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <!-- Receiver pour les évènements de Geofencing (Ajustement dynamique de fréquence) -->
+        <receiver
+            android:name=".geofence.GeofenceBroadcastReceiver"
+            android:enabled="true"
+            android:exported="true" />
     </application>
 
 </manifest>

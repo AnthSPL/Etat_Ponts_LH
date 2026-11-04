@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import fr.anthspl.etatpontlehavre.data.model.Bridge
 import fr.anthspl.etatpontlehavre.data.model.BridgeStatus
 import fr.anthspl.etatpontlehavre.data.remote.SWingDataSource
+import fr.anthspl.etatpontlehavre.geofence.GeofenceManager
 import fr.anthspl.etatpontlehavre.notifications.BridgeNotificationHelper
 import fr.anthspl.etatpontlehavre.widget.FavoriteBridgesWidgetProvider
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,6 +47,13 @@ class SWingRepository(
     suspend fun refreshBridges(): List<Bridge> {
         val remoteList = dataSource.fetchLeHavreBridges()
 
+        val bypassGpsCheck = alertSharedPreferences.getBoolean("bypass_gps_check", false)
+        val userLocation = GeofenceManager.fetchFreshLocation(context)
+        val minDistanceKm = GeofenceManager.calculateMinDistanceToBridgesInKm(userLocation)
+
+        val distanceConditionMetClosure = bypassGpsCheck || (minDistanceKm != null && minDistanceKm <= 10.0)
+        val distanceConditionMetReopen = bypassGpsCheck || (minDistanceKm != null && minDistanceKm <= 3.0)
+
         val updatedList = remoteList.map { bridge ->
             val bridgeName = bridge.name
             val isFav = favoriteIds.contains(bridge.id) || favoriteIds.contains(bridgeName)
@@ -57,7 +65,7 @@ class SWingRepository(
 
             if (isFav) {
                 if (wasPreviouslyClosed && !isClosed) {
-                    if (!alreadyNotifiedReopened) {
+                    if (!alreadyNotifiedReopened && distanceConditionMetReopen) {
                         notificationHelper.sendNowOpenNotification(
                             bridgeName,
                             "Bonne nouvelle : $bridgeName est à nouveau ouvert à la circulation !"
@@ -68,12 +76,47 @@ class SWingRepository(
                             .apply()
                     }
                 } else if (isClosed) {
+                    val notifKey = "notified_closed_$bridgeName"
+                    val lastNotifTimeKey = "last_closed_notif_time_$bridgeName"
+                    val alreadyNotifiedClosed = alertSharedPreferences.getBoolean(notifKey, false)
+                    val lastNotifTime = alertSharedPreferences.getLong(lastNotifTimeKey, 0L)
+                    val now = System.currentTimeMillis()
+                    val twoHoursInMillis = 2 * 60 * 60 * 1000L
+
+                    if (distanceConditionMetClosure) {
+                        if (!alreadyNotifiedClosed) {
+                            notificationHelper.sendClosureAlertNotification(
+                                bridgeName,
+                                "Attention : $bridgeName est fermé !"
+                            )
+                            alertSharedPreferences.edit()
+                                .putBoolean(notifKey, true)
+                                .putLong(lastNotifTimeKey, now)
+                                .apply()
+                        } else if (lastNotifTime > 0 && (now - lastNotifTime) >= twoHoursInMillis) {
+                            notificationHelper.sendClosureReminderNotification(
+                                bridgeName,
+                                "Rappel : $bridgeName est toujours fermé à la circulation."
+                            )
+                            alertSharedPreferences.edit()
+                                .putLong(lastNotifTimeKey, now)
+                                .apply()
+                        }
+                    }
+
                     alertSharedPreferences.edit()
                         .putBoolean(wasClosedKey, true)
                         .putBoolean(notifiedReopenedKey, false)
                         .apply()
-                } else if (bridge.status == BridgeStatus.SOON_OPEN) {
-                    notificationHelper.sendSoonOpenNotification(bridgeName)
+                } else {
+                    alertSharedPreferences.edit()
+                        .remove("notified_closed_$bridgeName")
+                        .remove("last_closed_notif_time_$bridgeName")
+                        .apply()
+
+                    if (bridge.status == BridgeStatus.SOON_OPEN && distanceConditionMetReopen) {
+                        notificationHelper.sendSoonOpenNotification(bridgeName)
+                    }
                 }
             }
 

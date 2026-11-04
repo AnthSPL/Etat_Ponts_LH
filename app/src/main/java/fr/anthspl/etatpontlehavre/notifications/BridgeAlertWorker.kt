@@ -17,6 +17,8 @@ import fr.anthspl.etatpontlehavre.data.model.BridgeStatus
 import fr.anthspl.etatpontlehavre.data.remote.MeteoFranceApi
 import fr.anthspl.etatpontlehavre.data.remote.SWingDataSource
 import fr.anthspl.etatpontlehavre.data.repository.VigilanceRepository
+import fr.anthspl.etatpontlehavre.geofence.GeofenceManager
+import fr.anthspl.etatpontlehavre.widget.FavoriteBridgesWidgetProvider
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -46,6 +48,9 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
 
             // 2. Vérification classique des ponts levants (S-WiNG)
             checkBridgesAndNotify()
+
+            // 3. Mise à jour automatique des widgets de l'écran d'accueil
+            FavoriteBridgesWidgetProvider.updateAllWidgets(applicationContext)
 
         } catch (e: CancellationException) {
             Log.i("BridgeAlertWorker", "ℹ️ Tâche interrompue / annulée proprement.")
@@ -204,19 +209,42 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                 val distanceConditionMetClosure = bypassGpsCheck || (distanceInKm != null && distanceInKm <= 10.0)
                 if (isFavorite && isClosed && distanceConditionMetClosure) {
                     val notifKey = "notified_closed_$bridgeName"
-                    if (!prefs.getBoolean(notifKey, false)) {
+                    val lastNotifTimeKey = "last_closed_notif_time_$bridgeName"
+                    val alreadyNotifiedClosed = prefs.getBoolean(notifKey, false)
+                    val lastNotifTime = prefs.getLong(lastNotifTimeKey, 0L)
+                    val now = System.currentTimeMillis()
+                    val twoHoursInMillis = 2 * 60 * 60 * 1000L
+
+                    if (!alreadyNotifiedClosed) {
+                        Log.i("BridgeAlertWorker", "🔔 Envoi notification initiale de Fermeture pour : $bridgeName")
                         helper.sendClosureAlertNotification(
                             bridgeName,
                             "Attention : $bridgeName est fermé !"
                         )
-                        prefs.edit().putBoolean(notifKey, true).apply()
+                        prefs.edit()
+                            .putBoolean(notifKey, true)
+                            .putLong(lastNotifTimeKey, now)
+                            .apply()
+                    } else if (lastNotifTime > 0 && (now - lastNotifTime) >= twoHoursInMillis) {
+                        Log.i("BridgeAlertWorker", "🔔 Envoi rappel de Fermeture (2h+) pour : $bridgeName")
+                        helper.sendClosureReminderNotification(
+                            bridgeName,
+                            "Rappel : $bridgeName est toujours fermé à la circulation."
+                        )
+                        prefs.edit()
+                            .putLong(lastNotifTimeKey, now)
+                            .apply()
                     }
+
                     prefs.edit()
                         .putBoolean(wasClosedKey, true)
                         .putBoolean(notifiedReopenedKey, false)
                         .apply()
                 } else if (!isClosed) {
-                    prefs.edit().remove("notified_closed_$bridgeName").apply()
+                    prefs.edit()
+                        .remove("notified_closed_$bridgeName")
+                        .remove("last_closed_notif_time_$bridgeName")
+                        .apply()
                 }
             }
 
@@ -241,14 +269,55 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
             val prefs = context.getSharedPreferences("bridge_alert_prefs", Context.MODE_PRIVATE)
             prefs.edit().putInt(PREF_CHECK_INTERVAL_MINUTES, minutes).apply()
             scheduleNextCheck(context, minutes.toLong(), ExistingWorkPolicy.REPLACE)
+            FavoriteBridgesWidgetProvider.updateAllWidgets(context)
         }
 
+        @SuppressLint("MissingPermission")
         fun scheduleNextCheck(
             context: Context,
             delayMinutes: Long? = null,
-            policy: ExistingWorkPolicy = ExistingWorkPolicy.KEEP
+            policy: ExistingWorkPolicy = ExistingWorkPolicy.KEEP,
+            userLocation: Location? = null
         ) {
-            val interval = delayMinutes ?: getInterval(context).toLong()
+            val prefs = context.getSharedPreferences("bridge_alert_prefs", Context.MODE_PRIVATE)
+            val isAutoGeofence = prefs.getBoolean("use_auto_geofence_interval", true)
+
+            val locToUse = userLocation ?: run {
+                try {
+                    val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+                    val gpsLoc = if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                    } else null
+                    val netLoc = if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                        locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                    } else null
+
+                    listOfNotNull(gpsLoc, netLoc).maxByOrNull { it.time }
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+            val interval = if (delayMinutes != null) {
+                Log.i("BridgeAlertWorker", "⚙️ [Fréquence Spécifiée] Délai imposé : $delayMinutes min")
+                delayMinutes
+            } else if (isAutoGeofence) {
+                val minDistanceKm = GeofenceManager.calculateMinDistanceToBridgesInKm(locToUse)
+                val autoInterval = GeofenceManager.getIntervalForDistance(minDistanceKm).toLong()
+
+                if (locToUse != null && minDistanceKm != null) {
+                    val formattedDist = String.format(Locale.FRANCE, "%.2f", minDistanceKm)
+                    Log.i("BridgeAlertWorker", "📍 [Geofencing GPS] Position connue : lat=${locToUse.latitude}, lon=${locToUse.longitude} | Distance min au pont le plus proche : $formattedDist km -> Fréquence sélectionnée : $autoInterval min")
+                } else {
+                    Log.w("BridgeAlertWorker", "⚠️ [Geofencing GPS] Aucune position GPS en cache -> Fréquence sélectionnée : $autoInterval min")
+                }
+
+                autoInterval
+            } else {
+                val manualInterval = getInterval(context).toLong()
+                Log.i("BridgeAlertWorker", "⚙️ [Fréquence Fixe Manuelle] Fréquence fixe sélectionnée : $manualInterval min")
+                manualInterval
+            }
 
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -264,6 +333,8 @@ class BridgeAlertWorker(context: Context, params: WorkerParameters) : CoroutineW
                 policy,
                 workRequest
             )
+
+            Log.i("BridgeAlertWorker", "⏰ Tâche planifiée : prochaine interrogation S-WiNG dans $interval minute(s) [Politique : $policy].")
         }
 
         fun schedulePeriodicCheck(context: Context) {

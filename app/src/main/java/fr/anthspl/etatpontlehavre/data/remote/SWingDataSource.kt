@@ -67,20 +67,43 @@ class SWingDataSource {
                     val statutText = bridgeObj.optString("statutText", "Ouvert aux véhicules")
                     val dateStr = bridgeObj.optString("date", "")
 
-                    // Mappage fidèle des 4 codes couleurs officiels S-WiNG :
-                    // 0 -> Ouvert aux véhicules (Vert)
-                    // 1 -> Fermé (Rouge)
-                    // 2 -> Fermeture imminente (Orange)
-                    // 3 -> Bientôt ouvert aux véhicules (Bleu)
-                    val status = when (statutCode) {
-                        0 -> BridgeStatus.OPEN
-                        1 -> BridgeStatus.CLOSED
-                        2 -> BridgeStatus.SCHEDULED_CLOSURE
-                        3 -> BridgeStatus.SOON_OPEN
+                    val statutTextLower = statutText.lowercase(Locale.FRANCE)
+
+                    // Analyse du texte explicite S-WiNG prioritaire sur le code numérique :
+                    val status = when {
+                        // 1. Détection des travaux, fermetures et indisponibilités
+                        statutTextLower.contains("travaux") ||
+                                statutTextLower.contains("maintenance") ||
+                                statutTextLower.contains("hors service") ||
+                                statutTextLower.contains("interromp") ||
+                                (statutTextLower.contains("fermé") && !statutTextLower.contains("ouvert")) ||
+                                (statutTextLower.contains("ferme") && !statutTextLower.contains("ouvert")) -> BridgeStatus.CLOSED
+
+                        // 2. Détection explicite de réouverture proche (Bleu)
+                        statutTextLower.contains("bientôt") ||
+                                statutTextLower.contains("bientot") ||
+                                statutTextLower.contains("manœuvre") ||
+                                statutTextLower.contains("manoeuvre") -> BridgeStatus.SOON_OPEN
+
+                        // 3. Détection explicite d'ouverture (Vert)
+                        statutTextLower.contains("ouvert") && !statutTextLower.contains("bientôt") && !statutTextLower.contains("bientot") -> BridgeStatus.OPEN
+
+                        // 4. Mappage de secours sur le code numérique S-WiNG :
+                        statutCode == 1 -> BridgeStatus.CLOSED
+                        statutCode == 2 -> BridgeStatus.SCHEDULED_CLOSURE
+                        statutCode == 3 -> BridgeStatus.SOON_OPEN
+                        statutCode == 0 -> BridgeStatus.OPEN
                         else -> BridgeStatus.OPEN
                     }
 
-                    val description = if (dateStr.isNotBlank()) "Depuis le $dateStr" else statutText
+                    val description = when {
+                        dateStr.isNotBlank() && statutText.isNotBlank() && !statutText.equals("Ouvert aux véhicules", ignoreCase = true) ->
+                            "$statutText • Depuis le $dateStr"
+                        dateStr.isNotBlank() ->
+                            "Depuis le $dateStr"
+                        else ->
+                            statutText
+                    }
                     val coords = BridgeCoordinates.map[name] ?: Pair(49.482, 0.122)
 
                     scrapedBridges.add(
